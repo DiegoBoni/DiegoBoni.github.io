@@ -1,69 +1,712 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard de Conversaciones</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    // Set Tailwind to use the 'class' strategy for dark mode
-    tailwind.config = {
-      darkMode: 'class'
-    }
-  </script>
-  <style>
-    /* Custom scrollbars */
-    ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #f1f1f1; /* Light mode track */
-      border-radius: 10px;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #888; /* Light mode thumb */
-      border-radius: 10px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #555; /* Light mode thumb hover */
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Conversaciones</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    /* Dark mode scrollbars */
-    html.dark ::-webkit-scrollbar-track {
-      background: #1e293b; /* e.g., slate-800 */
-    }
-    html.dark ::-webkit-scrollbar-thumb {
-      background: #475569; /* e.g., slate-600 */
-    }
-    html.dark ::-webkit-scrollbar-thumb:hover {
-      background: #64748b; /* e.g., slate-500 */
-    }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-    }
-  </style>
-<script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
-    "react": "https://esm.sh/react@^19.1.0",
-    "react/": "https://esm.sh/react@^19.1.0/",
-    "lucide-react": "https://esm.sh/lucide-react@^0.516.0",
-    "recharts": "https://esm.sh/recharts@^2.15.3"
-  }
-}
-</script>
-<link rel="stylesheet" href="/index.css">
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: left;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .login-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .input-field {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .input-field label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .input-field input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-field input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .dashboard {
+            display: none;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .charts-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+        }
+
+        #tokensChart {
+            max-height: 200px;
+            height: 200px !important;
+        }
+
+        .logout-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            color: #764ba2;
+            border: 2px solid #764ba2;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .logout-button:hover {
+            background: #764ba2;
+            color: white;
+        }
+
+        .sessions-list {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .session-item {
+            border-bottom: 1px solid #eee;
+            padding: 15px 0;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .session-item:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .session-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .session-id {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .session-stats {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .session-messages {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 8px;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .message.user {
+            background: #e3f2fd;
+            margin-left: 20px;
+        }
+
+        .message.assistant {
+            background: #f3e5f5;
+            margin-right: 20px;
+        }
+
+        .message-role {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .access-denied {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 2px solid #ff5722;
+        }
+
+        .access-denied h2 {
+            color: #ff5722;
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+
+        .access-denied p {
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+        }
+
+        .tokens-status {
+            background: rgba(255, 87, 34, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #ff5722;
+        }
+
+        .contact-info {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .input-group {
+                flex-direction: column;
+            }
+            
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
-<body class="min-h-screen
-             text-slate-800
-             bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100
-             dark:bg-gradient-to-br dark:from-slate-900 dark:via-purple-950 dark:to-indigo-950
-             dark:text-slate-200
-             transition-colors duration-300 ease-in-out">
-  <div id="root"></div>
-  <script type="module" src="/index.tsx"></script>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 id="dashboardTitle">📊 Dashboard de Conversaciones</h1>
+            <p id="dashboardSubtitle">Analiza el historial de conversaciones</p>
+        </div>
+
+        <div class="login-section" id="loginSection">
+            <div class="input-group">
+                <div class="input-field">
+                    <label for="binId">ID del Cliente</label>
+                    <input type="text" id="binId" placeholder="Ej: 675878a1acd3cb34a8b8f2c8">
+                </div>
+            </div>
+            <button class="btn" onclick="loadData()">Cargar Dashboard</button>
+            <div id="error" class="error" style="display: none;"></div>
+            <div id="loading" class="loading" style="display: none;">Cargando datos...</div>
+        </div>
+
+        <div class="dashboard" id="dashboard">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalSessions">0</div>
+                    <div class="stat-label">Total Sesiones</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalMessages">0</div>
+                    <div class="stat-label">Total Mensajes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalTokens">0</div>
+                    <div class="stat-label">Créditos Utilizados</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="availableTokens">0</div>
+                    <div class="stat-label">Créditos Disponibles</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="avgTokensPerMessage">0</div>
+                    <div class="stat-label">Promedio Créditos/Mensaje</div>
+                </div>
+            </div>
+
+            <div class="charts-section">
+                <div class="chart-card">
+                    <div class="chart-title">Conversaciones por Día</div>
+                    <canvas id="tokensChart"></canvas>
+                </div>
+            </div>
+
+            <div class="sessions-list">
+                <h3 style="margin-bottom: 20px;">📝 Historial de Sesiones</h3>
+                <div id="sessionsList"></div>
+            </div>
+        </div>
+
+        <div class="access-denied" id="accessDenied" style="display: none;">
+            <h2>🚫 Acceso Restringido</h2>
+            <p>Lo sentimos, no tienes créditos suficientes para acceder al dashboard.</p>
+            
+            <div class="tokens-status">
+                <h3>Estado de Créditos:</h3>
+                <p><strong>Créditos Asignados:</strong> <span id="assignedTokensDisplay">0</span></p>
+                <p><strong>Créditos Utilizados:</strong> <span id="usedTokensDisplay">0</span></p>
+                <p><strong>Créditos Disponibles:</strong> <span id="remainingTokensDisplay">0</span></p>
+            </div>
+
+            <p>Para continuar utilizando el servicio, necesitas solicitar más créditos.</p>
+            
+            <div class="contact-info">
+                <p><strong>📧 Contacta al equipo de soporte para solicitar más créditos</strong></p>
+                <p>Tu ID de cliente: <span id="clientIdDisplay"></span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURACIÓN: Agrega tu X-Master-Key aquí
+        const MASTER_KEY = '$2a$10$aFvQlWWiKdpJ0OoQubC.aeQEFhXSbgbE.U3CIQZ1yM96pVe52LCPW';
+        
+        let currentData = null;
+        let tokensChart = null;
+        let messagesChart = null;
+
+        // Cargar datos guardados al iniciar
+        window.onload = function() {
+            const savedBinId = localStorage.getItem('binId');
+            
+            if (savedBinId) {
+                document.getElementById('binId').value = savedBinId;
+            }
+        };
+
+        async function loadData() {
+            const binId = document.getElementById('binId').value.trim();
+            
+            if (!binId) {
+                showError('Por favor, ingresa el ID del cliente');
+                return;
+            }
+
+            if (MASTER_KEY === 'TU_X_MASTER_KEY_AQUI') {
+                showError('Error: X-Master-Key no configurada. Contacta al administrador.');
+                return;
+            }
+
+            // Guardar en localStorage
+            localStorage.setItem('binId', binId);
+
+            showLoading(true);
+            hideError();
+
+            try {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Master-Key': MASTER_KEY,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                currentData = data.record;
+                
+                // Intentar obtener el nombre del bin desde los metadatos de JSONBin
+                let clientName = null;
+                try {
+                    const metaResponse = await fetch(`https://api.jsonbin.io/v3/b/${binId}/meta`, {
+                        method: 'GET',
+                        headers: {
+                            'X-Master-Key': MASTER_KEY
+                        }
+                    });
+                    if (metaResponse.ok) {
+                        const metaData = await metaResponse.json();
+                        clientName = metaData.record.name;
+                    }
+                } catch (metaError) {
+                    console.log('No se pudo obtener metadatos del bin');
+                }
+                
+                displayDashboard(clientName);
+                
+            } catch (error) {
+                showError('Error al cargar los datos: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function displayDashboard(clientName = null) {
+            if (!currentData || !currentData.chatHistory) {
+                showError('Formato de datos inválido');
+                return;
+            }
+
+            // Verificar tokens disponibles
+            const tokenCheck = checkTokenAvailability(currentData);
+            
+            if (!tokenCheck.hasAccess) {
+                showAccessDenied(tokenCheck, clientName);
+                return;
+            }
+
+            // Determinar el nombre del cliente
+            let displayName = null;
+            
+            // 1. Primero intentar desde el JSON (campo clientName)
+            if (currentData.clientName) {
+                displayName = currentData.clientName;
+            }
+            // 2. Luego desde los metadatos del bin
+            else if (clientName) {
+                displayName = clientName;
+            }
+            // 3. Como último recurso, usar parte del Bin ID
+            else {
+                const binId = document.getElementById('binId').value;
+                displayName = `Cliente ${binId.substring(0, 8)}...`;
+            }
+
+            // Actualizar título del dashboard
+            document.getElementById('dashboardTitle').innerHTML = `📊 Dashboard - ${displayName}`;
+            document.getElementById('dashboardSubtitle').innerHTML = `Análisis de conversaciones`;
+
+            // Mostrar dashboard
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('accessDenied').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+
+            // Calcular estadísticas
+            const stats = calculateStats(currentData);
+            
+            // Actualizar tarjetas de estadísticas
+            document.getElementById('totalSessions').textContent = stats.totalSessions;
+            document.getElementById('totalMessages').textContent = stats.totalMessages;
+            document.getElementById('totalTokens').textContent = stats.totalTokens.toLocaleString();
+            document.getElementById('availableTokens').textContent = tokenCheck.availableTokens.toLocaleString();
+            document.getElementById('avgTokensPerMessage').textContent = stats.avgTokensPerMessage;
+
+            // Crear gráficos
+            createCharts(currentData.chatHistory);
+            
+            // Mostrar lista de sesiones
+            displaySessions(currentData.chatHistory);
+        }
+
+        function checkTokenAvailability(data) {
+            // Obtener tokens asignados (por defecto 0 si no está definido)
+            const assignedTokens = data.assignedTokens || 0;
+            
+            // Calcular tokens utilizados
+            const usedTokens = data.metadata?.totalTokens || 0;
+            
+            // Calcular tokens disponibles
+            const availableTokens = assignedTokens - usedTokens;
+            
+            return {
+                hasAccess: availableTokens > 0,
+                assignedTokens: assignedTokens,
+                usedTokens: usedTokens,
+                availableTokens: availableTokens
+            };
+        }
+
+        function showAccessDenied(tokenCheck, clientName = null) {
+            // Determinar el nombre del cliente para mostrar
+            let displayName = null;
+            if (currentData.clientName) {
+                displayName = currentData.clientName;
+            } else if (clientName) {
+                displayName = clientName;
+            } else {
+                const binId = document.getElementById('binId').value;
+                displayName = `Cliente ${binId.substring(0, 8)}...`;
+            }
+
+            // Actualizar título
+            document.getElementById('dashboardTitle').innerHTML = `🚫 Acceso Restringido - ${displayName}`;
+            document.getElementById('dashboardSubtitle').innerHTML = `Tokens insuficientes para acceder al dashboard`;
+
+            // Mostrar información de tokens
+            document.getElementById('assignedTokensDisplay').textContent = tokenCheck.assignedTokens.toLocaleString();
+            document.getElementById('usedTokensDisplay').textContent = tokenCheck.usedTokens.toLocaleString();
+            document.getElementById('remainingTokensDisplay').textContent = tokenCheck.availableTokens.toLocaleString();
+            document.getElementById('clientIdDisplay').textContent = document.getElementById('binId').value;
+
+            // Mostrar pantalla de acceso denegado
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('accessDenied').style.display = 'block';
+        }
+
+        function calculateStats(data) {
+            const sessions = data.chatHistory || [];
+            let totalMessages = 0;
+            let totalTokens = 0;
+
+            sessions.forEach(session => {
+                totalMessages += session.totalMessages || session.messages.length;
+                totalTokens += session.tokensSession || 0;
+            });
+
+            return {
+                totalSessions: sessions.length,
+                totalMessages,
+                totalTokens,
+                avgTokensPerMessage: totalMessages > 0 ? Math.round(totalTokens / totalMessages) : 0
+            };
+        }
+
+        function createCharts(sessions) {
+            const dateCounts = {};
+        
+            sessions.forEach(session => {
+                const dateStr = new Date(session.conversationStarted).toLocaleDateString();
+                dateCounts[dateStr] = (dateCounts[dateStr] || 0) + 1;
+            });
+        
+            const labels = Object.keys(dateCounts);
+            const conversationCounts = Object.values(dateCounts);
+        
+            // Destruir gráfico anterior si existe
+            if (tokensChart) tokensChart.destroy();
+        
+            const ctx = document.getElementById('tokensChart').getContext('2d');
+            tokensChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Conversaciones por Día',
+                        data: conversationCounts,
+                        backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            // Gráfico de mensajes por sesión eliminado
+        }
+
+        function displaySessions(sessions) {
+            const sessionsList = document.getElementById('sessionsList');
+            sessionsList.innerHTML = '';
+
+            sessions.forEach((session, index) => {
+                const sessionElement = document.createElement('div');
+                sessionElement.className = 'session-item';
+                sessionElement.innerHTML = `
+                    <div class="session-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div class="session-id"><strong>🗂 Sesión ${index + 1}</strong></div>
+                        <div class="session-stats" style="font-size: 0.85rem; color: #444;">
+                            ${session.totalMessages || session.messages.length} mensajes • 
+                            ${session.tokensSession || 0} créditos • 
+                            ${new Date(session.conversationStarted).toLocaleString()}
+                        </div>
+                    </div>
+                    <div class="session-messages" id="messages-${index}" style="display: none;"></div>
+                `;
+
+                sessionElement.addEventListener('click', () => {
+                    const messagesDiv = document.getElementById(`messages-${index}`);
+                    if (messagesDiv.innerHTML === '') {
+                        messagesDiv.innerHTML = `
+                            ${session.messages.map(msg => `
+                                <div class="message ${msg.role}">
+                                    <div class="message-role">${msg.role === 'user' ? '👤 Usuario' : '🤖 Asistente'}</div>
+                                    <div>${msg.content}</div>
+                                    <small>${new Date(msg.timestamp).toLocaleString()}</small>
+                                </div>
+                            `).join('')}
+                        `;
+                    }
+                    messagesDiv.style.display = messagesDiv.style.display === 'block' ? 'none' : 'block';
+                });
+
+                sessionsList.appendChild(sessionElement);
+            });
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        // Función para volver al formulario
+        function goBack() {
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('accessDenied').style.display = 'none';
+            document.getElementById('loginSection').style.display = 'block';
+            
+            // Restaurar título original
+            document.getElementById('dashboardTitle').innerHTML = '📊 Dashboard de Conversaciones';
+            document.getElementById('dashboardSubtitle').innerHTML = 'Analiza el historial de conversaciones';
+        }
+
+        // Crear botón de cerrar sesión (logout) y agregarlo al body
+        const logoutBtn = document.createElement('button');
+        logoutBtn.className = 'logout-button';
+        logoutBtn.id = 'backBtn';
+        logoutBtn.textContent = 'Cerrar Sesión';
+        logoutBtn.onclick = goBack;
+        logoutBtn.style.display = 'none';
+        document.body.appendChild(logoutBtn);
+
+        // Mostrar botón de logout cuando se muestre el dashboard
+        const originalDisplayDashboard = displayDashboard;
+        displayDashboard = function(clientName = null) {
+            originalDisplayDashboard(clientName);
+            document.getElementById('backBtn').style.display = 'inline-block';
+        };
+
+        // Ocultar el botón de logout al volver
+        const originalGoBack = goBack;
+        goBack = function() {
+            originalGoBack();
+            document.getElementById('backBtn').style.display = 'none';
+        };
+    </script>
 </body>
 </html>
