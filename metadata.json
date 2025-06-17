@@ -1,0 +1,6 @@
+{
+  "name": "Conversation Dashboard React",
+  "description": "A React application to analyze conversation history from a JSONBin data source, featuring statistics, charts, and session details with download capabilities.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
