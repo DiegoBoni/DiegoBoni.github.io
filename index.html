@@ -38,6 +38,73 @@
             font-weight: 300;
         }
 
+        .dashboard-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-refresh {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-refresh:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-download:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-download-session {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            margin-left: 10px;
+        }
+
+        .btn-download-session:hover {
+            transform: translateY(-1px);
+        }
+
         .login-section {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
@@ -187,6 +254,13 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
 
+        .sessions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
         .session-item {
             border-bottom: 1px solid #eee;
             padding: 15px 0;
@@ -296,6 +370,39 @@
             color: #666;
         }
 
+        .refresh-spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+        }
+
+        .notification.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: #f44336;
+        }
+
         @media (max-width: 768px) {
             .input-group {
                 flex-direction: column;
@@ -303,6 +410,15 @@
             
             .charts-section {
                 grid-template-columns: 1fr;
+            }
+
+            .dashboard-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .control-buttons {
+                justify-content: center;
             }
         }
     </style>
@@ -327,6 +443,18 @@
         </div>
 
         <div class="dashboard" id="dashboard">
+            <div class="dashboard-controls">
+                <div class="control-buttons">
+                    <button class="btn-refresh" onclick="refreshData()">
+                        <span id="refreshIcon">🔄</span>
+                        Actualizar Datos
+                    </button>
+                    <button class="btn-download" onclick="downloadAllConversations()">
+                        📥 Descargar Todas
+                    </button>
+                </div>
+            </div>
+
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-number" id="totalSessions">0</div>
@@ -358,7 +486,9 @@
             </div>
 
             <div class="sessions-list">
-                <h3 style="margin-bottom: 20px;">📝 Historial de Sesiones</h3>
+                <div class="sessions-header">
+                    <h3>📝 Historial de Sesiones</h3>
+                </div>
                 <div id="sessionsList"></div>
             </div>
         </div>
@@ -382,6 +512,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification"></div>
 
     <script>
         // CONFIGURACIÓN: Agrega tu X-Master-Key aquí
@@ -458,6 +591,20 @@
                 showError('Error al cargar los datos: ' + error.message);
             } finally {
                 showLoading(false);
+            }
+        }
+
+        async function refreshData() {
+            const refreshIcon = document.getElementById('refreshIcon');
+            refreshIcon.classList.add('refresh-spinner');
+            
+            try {
+                await loadData();
+                showNotification('Datos actualizados correctamente', 'success');
+            } catch (error) {
+                showNotification('Error al actualizar los datos', 'error');
+            } finally {
+                refreshIcon.classList.remove('refresh-spinner');
             }
         }
 
@@ -618,7 +765,6 @@
                     }
                 }
             });
-            // Gráfico de mensajes por sesión eliminado
         }
 
         function displaySessions(sessions) {
@@ -631,16 +777,26 @@
                 sessionElement.innerHTML = `
                     <div class="session-header" style="display: flex; justify-content: space-between; align-items: center;">
                         <div class="session-id"><strong>🗂 Sesión ${index + 1}</strong></div>
-                        <div class="session-stats" style="font-size: 0.85rem; color: #444;">
-                            ${session.totalMessages || session.messages.length} mensajes • 
-                            ${session.tokensSession || 0} créditos • 
-                            ${new Date(session.conversationStarted).toLocaleString()}
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div class="session-stats" style="font-size: 0.85rem; color: #444;">
+                                ${session.totalMessages || session.messages.length} mensajes • 
+                                ${session.tokensSession || 0} créditos • 
+                                ${new Date(session.conversationStarted).toLocaleString()}
+                            </div>
+                            <button class="btn-download-session" onclick="downloadSession(${index}, event)">
+                                📥 Descargar
+                            </button>
                         </div>
                     </div>
                     <div class="session-messages" id="messages-${index}" style="display: none;"></div>
                 `;
 
-                sessionElement.addEventListener('click', () => {
+                sessionElement.addEventListener('click', (e) => {
+                    // Evitar que el click en el botón de descarga abra/cierre los mensajes
+                    if (e.target.classList.contains('btn-download-session')) {
+                        return;
+                    }
+                    
                     const messagesDiv = document.getElementById(`messages-${index}`);
                     if (messagesDiv.innerHTML === '') {
                         messagesDiv.innerHTML = `
@@ -658,6 +814,95 @@
 
                 sessionsList.appendChild(sessionElement);
             });
+        }
+
+        function downloadAllConversations() {
+            if (!currentData || !currentData.chatHistory) {
+                showNotification('No hay datos para descargar', 'error');
+                return;
+            }
+
+            try {
+                const clientName = currentData.clientName || 'Cliente';
+                const binId = document.getElementById('binId').value;
+                const fileName = `conversaciones_${clientName}_${binId.substring(0, 8)}_${new Date().toISOString().split('T')[0]}.json`;
+                
+                const dataToDownload = {
+                    cliente: clientName,
+                    binId: binId,
+                    fechaDescarga: new Date().toISOString(),
+                    estadisticas: calculateStats(currentData),
+                    conversaciones: currentData.chatHistory.map((session, index) => ({
+                        numeroSesion: index + 1,
+                        fechaInicio: session.conversationStarted,
+                        totalMensajes: session.totalMessages || session.messages.length,
+                        creditosUtilizados: session.tokensSession || 0,
+                        mensajes: session.messages
+                    }))
+                };
+
+                downloadJSON(dataToDownload, fileName);
+                showNotification('Todas las conversaciones descargadas correctamente', 'success');
+            } catch (error) {
+                showNotification('Error al descargar las conversaciones', 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        function downloadSession(sessionIndex, event) {
+            event.stopPropagation(); // Evitar que se propague el evento click
+            
+            if (!currentData || !currentData.chatHistory || !currentData.chatHistory[sessionIndex]) {
+                showNotification('Sesión no encontrada', 'error');
+                return;
+            }
+
+            try {
+                const session = currentData.chatHistory[sessionIndex];
+                const clientName = currentData.clientName || 'Cliente';
+                const binId = document.getElementById('binId').value;
+                const fileName = `sesion_${sessionIndex + 1}_${clientName}_${binId.substring(0, 8)}_${new Date().toISOString().split('T')[0]}.json`;
+                
+                const sessionData = {
+                    cliente: clientName,
+                    binId: binId,
+                    numeroSesion: sessionIndex + 1,
+                    fechaDescarga: new Date().toISOString(),
+                    fechaInicio: session.conversationStarted,
+                    totalMensajes: session.totalMessages || session.messages.length,
+                    creditosUtilizados: session.tokensSession || 0,
+                    mensajes: session.messages
+                };
+
+                downloadJSON(sessionData, fileName);
+                showNotification(`Sesión ${sessionIndex + 1} descargada correctamente`, 'success');
+            } catch (error) {
+                showNotification('Error al descargar la sesión', 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        function downloadJSON(data, filename) {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
         }
 
         function showError(message) {
@@ -710,3 +955,14 @@
     </script>
 </body>
 </html>
+    <script id="html_badge_script1">
+        window.__genspark_remove_badge_link = "https://www.genspark.ai/api/html_badge/" +
+            "remove_badge?token=To%2FBnjzloZ3UfQdcSaYfDpO%2BEtR2PRgZb5kzsHRxf4xV0MLjD8r%2FcGtAYZBun48%2FzRF0oQx7lbieRwno0B%2Bqk4YZ4y4R65cfFpEzwnRbq%2BavnmtjN74SSt7BmKAMvFHa%2FnJDwf2VBlVHZ7oeH2mQgUaHyi6K6nBmGOCV86BUS4jQ0qlT9HY%2F7ntegu6X3BKdMniAqqI1ahhYXhfHaplo7DSF0fPk3VaZoFlGTHHtO%2FMR97QiDMhZLuFG%2BLIpur5lYZgypaWrdk8L1oY%2FehGZI3n90f8AagobEKF1sRr0SilNntGC8Sa7AnpmLY%2BDmtsYk5NPcZis8p3T3g7LcVPzTgmDFIc1PJeyVsdY8qdKwuWbuDj4MymS3GEq31A75i%2FItfRdya%2FFveubg2AevLROYxX3NUOh5j7Jg4fmuvjRN0qvldz1Y4FImdJHPIk2XipwZSaV%2B1766hLBtvIA532CCnZZCd%2F5zur1PjtbApY0XaASM1zwLwp%2BKO5f8ePOFDFFEhK3QwlH04jJ%2FV4cH2eWWO8gCs5FqLJ9KQOyNbmafn4%3D";
+        window.__genspark_locale = "es-ES";
+        window.__genspark_token = "To/BnjzloZ3UfQdcSaYfDpO+EtR2PRgZb5kzsHRxf4xV0MLjD8r/cGtAYZBun48/zRF0oQx7lbieRwno0B+qk4YZ4y4R65cfFpEzwnRbq+avnmtjN74SSt7BmKAMvFHa/nJDwf2VBlVHZ7oeH2mQgUaHyi6K6nBmGOCV86BUS4jQ0qlT9HY/7ntegu6X3BKdMniAqqI1ahhYXhfHaplo7DSF0fPk3VaZoFlGTHHtO/MR97QiDMhZLuFG+LIpur5lYZgypaWrdk8L1oY/ehGZI3n90f8AagobEKF1sRr0SilNntGC8Sa7AnpmLY+DmtsYk5NPcZis8p3T3g7LcVPzTgmDFIc1PJeyVsdY8qdKwuWbuDj4MymS3GEq31A75i/ItfRdya/Fveubg2AevLROYxX3NUOh5j7Jg4fmuvjRN0qvldz1Y4FImdJHPIk2XipwZSaV+1766hLBtvIA532CCnZZCd/5zur1PjtbApY0XaASM1zwLwp+KO5f8ePOFDFFEhK3QwlH04jJ/V4cH2eWWO8gCs5FqLJ9KQOyNbmafn4=";
+    </script>
+    
+        <script id="html_badge_script2" src="https://www.genspark.ai/html_badge.js"></script>
+        
+    <script id="html_notice_dialog_script" src="https://www.genspark.ai/notice_dialog.js"></script>
+    
