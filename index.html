@@ -354,9 +354,12 @@
             <div class="card sessions-list">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h3 class="chart-title" style="margin-bottom: 0;">📝 Historial de Sesiones</h3>
-                    <button class="btn-control" id="sortButton" onclick="toggleSortOrder()">
-                        ⇅ Recientes Primero
-                    </button>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <input type="text" id="sessionSearch" placeholder="🔍 Buscar en sesiones..." onkeyup="filterSessions()" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color);">
+                        <button class="btn-control" id="sortButton" onclick="toggleSortOrder()">
+                            ⇅ Recientes Primero
+                        </button>
+                    </div>
                 </div>
                 <div id="sessionsList"></div>
             </div>
@@ -590,15 +593,25 @@
             sortButton.innerHTML = sortOrder === 'desc' ? '⇅ Recientes Primero' : '⇅ Antiguos Primero';
         }
 
+        function filterSessions() {
+            displaySessions(currentData.chatHistory);
+        }
+
         function displaySessions(sessions) {
             const sessionsList = document.getElementById('sessionsList');
             sessionsList.innerHTML = '';
+            const searchTerm = document.getElementById('sessionSearch') ? document.getElementById('sessionSearch').value.toLowerCase() : "";
 
             const numberedSessions = [...sessions]
                 .sort((a, b) => new Date(a.conversationStarted) - new Date(b.conversationStarted))
                 .map((session, index) => ({ ...session, sessionNumber: index + 1 }));
 
-            const sortedSessions = numberedSessions.sort((a, b) => {
+            const filteredSessions = numberedSessions.filter(session => {
+                if (!searchTerm) return true;
+                return session.messages.some(msg => msg.content.toLowerCase().includes(searchTerm));
+            });
+
+            const sortedSessions = filteredSessions.sort((a, b) => {
                 const dateA = new Date(a.conversationStarted);
                 const dateB = new Date(b.conversationStarted);
                 return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
@@ -867,18 +880,20 @@
         }
 
         function destroyChat() {
-            if (!chatInitialized) return;
-            
-            const widget = document.querySelector('div[id^="n8n-chat-"]');
-            if (widget) widget.remove();
+            if (window.n8nChat && typeof window.n8nChat.destroy === 'function') {
+                window.n8nChat.destroy();
+            }
+            window.n8nChat = null;
+            chatInitialized = false;
 
             const chatStyle = document.getElementById('n8n-chat-style');
             if (chatStyle) chatStyle.remove();
-            
+
             const chatScript = document.getElementById('n8n-chat-script');
             if (chatScript) chatScript.remove();
-            
-            chatInitialized = false;
+
+            const widget = document.querySelector('div[id^="n8n-chat-"]');
+            if (widget) widget.remove();
         }
     </script>
 
