@@ -355,7 +355,14 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h3 class="chart-title" style="margin-bottom: 0;">📝 Historial de Sesiones</h3>
                     <div style="display: flex; align-items: center; gap: 15px;">
-                        <input type="text" id="sessionSearch" placeholder="🔍 Buscar en sesiones..." onkeyup="filterSessions()" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color);">
+                        <input type="text" id="sessionSearch" placeholder="🔍 Buscar en sesiones..." onkeyup="displaySessions()" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color);">
+                        <select id="intentionFilter" onchange="displaySessions()" class="btn-control form-control">
+                            <option value="all">Toda Intención</option>
+                            <option value="alta">Alta</option>
+                            <option value="media">Media</option>
+                            <option value="baja">Baja</option>
+                            <option value="N/A">N/A</option>
+                        </select>
                         <button class="btn-control" id="sortButton" onclick="toggleSortOrder()">
                             ⇅ Recientes Primero
                         </button>
@@ -597,6 +604,42 @@
             displaySessions(currentData.chatHistory);
         }
 
+        function getPlatformIcon(platform) {
+            platform = (platform || 'web').toLowerCase();
+            if (platform.includes('whatsapp')) {
+                return '<span title="WhatsApp" style="cursor: help;">📱</span>';
+            }
+            return '<span title="Web Chat" style="cursor: help;">💬</span>';
+        }
+
+        function getPurchaseIntentionUI(intention) {
+            const green = 'var(--success-color)';
+            const grey = 'color: var(--text-muted-color); opacity: 0.5;';
+            let ui = '';
+            let titleText = '';
+            intention = (intention || '').toLowerCase();
+
+            switch (intention) {
+                case 'baja':
+                    ui = `<span style="color: ${green};"><strong>$</strong></span><span style="${grey}"><strong>$$</strong></span>`;
+                    titleText = 'Intención: Baja';
+                    break;
+                case 'media':
+                    ui = `<span style="color: ${green};"><strong>$$</strong></span><span style="${grey}"><strong>$</strong></span>`;
+                    titleText = 'Intención: Media';
+                    break;
+                case 'alta':
+                    ui = `<span style="color: ${green};"><strong>$$$</strong></span>`;
+                    titleText = 'Intención: Alta';
+                    break;
+                default:
+                    ui = `<span style="${grey}"><strong>$$$</strong></span>`;
+                    titleText = 'Intención: N/A';
+                    break;
+            }
+            return `<span title="${titleText}" style="cursor: help;">${ui}</span>`;
+        }
+
         function displaySessions(sessions) {
             const sessionsList = document.getElementById('sessionsList');
             sessionsList.innerHTML = '';
@@ -622,6 +665,31 @@
 
                 const sessionElement = document.createElement('div');
                 sessionElement.className = 'session-item';
+                
+                const platformIcon = getPlatformIcon(session.platform);
+                const purchaseIntentionUI = getPurchaseIntentionUI(session.purchaseIntention);
+                
+                let leadDataHtml = '<strong>Lead:</strong><br>N/A';
+                if (session.contactData) {
+                    const name = session.contactData.names?.[0] || '';
+                    const surname = session.contactData.surnames?.[0] || '';
+                    const email = session.contactData.emails?.[0] || 'N/A';
+                    const phone = session.contactData.phones?.[0] || 'N/A';
+                    
+                    const formatValue = (value) => {
+                        return value === 'N/A' 
+                            ? `<span style="color: var(--warning-color);">N/A</span>`
+                            : `<strong>${value}</strong>`;
+                    };
+
+                    leadDataHtml = `
+                        <strong>Lead:</strong><br>
+                        Nombre: ${formatValue(`${name} ${surname}`.trim() || 'N/A')}<br>
+                        Email: ${formatValue(email)}<br>
+                        Teléfono: ${formatValue(phone)}
+                    `;
+                }
+
                 sessionElement.innerHTML = `
                     <div class="session-header">
                         <div class="session-id"><strong>🗂 Sesión ${session.sessionNumber}</strong></div>
@@ -634,6 +702,17 @@
                             <button class="btn-control btn-download-session" onclick="downloadSession(${originalIndex}, event)">
                                 📥 Descargar
                             </button>
+                        </div>
+                    </div>
+                    <div class="session-details" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 5px; margin-top: 10px; gap: 20px;">
+                        <div class="lead-info" style="flex: 2; font-size: 0.9rem; line-height: 1.4;">
+                            ${leadDataHtml}
+                        </div>
+                        <div class="platform-icon" style="flex: 1; text-align: center; font-size: 1.8rem;">
+                            ${platformIcon}
+                        </div>
+                        <div class="intention-ui" style="flex: 1; text-align: right; font-size: 1.8rem;">
+                            ${purchaseIntentionUI}
                         </div>
                     </div>
                     <div class="session-messages" id="messages-${originalIndex}"></div>
@@ -670,20 +749,46 @@
 
         function convertToCSV(sessions) {
             const rows = [];
-            rows.push('"Session ID","Role","Content","Timestamp"');
+            rows.push('"Session ID","Platform","Purchase Intention","Lead Name","Lead Email","Lead Phone","Role","Content","Timestamp"');
 
             sessions.forEach((session, index) => {
-                const sessionId = session.id || `Session ${index + 1}`;
-                session.messages.forEach(msg => {
-                    const content = msg.content ? msg.content.replace(/"/g, '""') : '';
-                    const row = [
+                const sessionId = session.sessionNumber || `Session ${index + 1}`;
+                const platform = session.platform || 'N/A';
+                const purchaseIntention = session.purchaseIntention || 'N/A';
+                const leadName = (session.contactData?.names?.[0] || '') + ' ' + (session.contactData?.surnames?.[0] || '');
+                const leadEmail = session.contactData?.emails?.[0] || 'N/A';
+                const leadPhone = session.contactData?.phones?.[0] || 'N/A';
+
+                if (session.messages.length === 0) {
+                     const row = [
                         `"${sessionId}"`,
-                        `"${msg.role}"`,
-                        `"${content}"`,
-                        `"${new Date(msg.timestamp).toLocaleString()}"`
+                        `"${platform}"`,
+                        `"${purchaseIntention}"`,
+                        `"${leadName.trim()}"`,
+                        `"${leadEmail}"`,
+                        `"${leadPhone}"`,
+                        '"N/A"',
+                        '"No messages in this session"',
+                        `"${new Date(session.conversationStarted).toLocaleString()}"`
                     ];
                     rows.push(row.join(','));
-                });
+                } else {
+                    session.messages.forEach(msg => {
+                        const content = msg.content ? msg.content.replace(/"/g, '""') : '';
+                        const row = [
+                            `"${sessionId}"`,
+                            `"${platform}"`,
+                            `"${purchaseIntention}"`,
+                            `"${leadName.trim()}"`,
+                            `"${leadEmail}"`,
+                            `"${leadPhone}"`,
+                            `"${msg.role}"`,
+                            `"${content}"`,
+                            `"${new Date(msg.timestamp).toLocaleString()}"`
+                        ];
+                        rows.push(row.join(','));
+                    });
+                }
             });
 
             return rows.join('\n');
