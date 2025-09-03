@@ -320,6 +320,9 @@
                     <button class="btn-control" onclick="downloadAllConversations()">
                         📥 Descargar Todo
                     </button>
+                    <button class="btn-control" onclick="downloadAllConversationsForKommo()">
+                        📥 Descargar para Kommo
+                    </button>
                 </div>
             </div>
 
@@ -702,6 +705,9 @@
                             <button class="btn-control btn-download-session" onclick="downloadSession(${originalIndex}, event)">
                                 📥 Descargar
                             </button>
+                            <button class="btn-control btn-download-session" onclick="downloadSessionForKommo(${originalIndex}, event)">
+                                📥 Descargar para Kommo
+                            </button>
                         </div>
                     </div>
                     <div class="session-details" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 5px; margin-top: 10px; gap: 20px;">
@@ -761,7 +767,7 @@
 
                 if (session.messages.length === 0) {
                      const row = [
-                        `"${sessionId}"`,
+                        `"${sessionId}"`, 
                         `"${platform}"`,
                         `"${purchaseIntention}"`,
                         `"${leadName.trim()}"`,
@@ -776,7 +782,7 @@
                     session.messages.forEach(msg => {
                         const content = msg.content ? msg.content.replace(/"/g, '""') : '';
                         const row = [
-                            `"${sessionId}"`,
+                            `"${sessionId}"`, 
                             `"${platform}"`,
                             `"${purchaseIntention}"`,
                             `"${leadName.trim()}"`,
@@ -793,6 +799,44 @@
 
             return rows.join('\n');
         }
+
+        function convertToCSVforKommo(sessions) {
+            const header = 'Fullname;Position;Responsible user (contact);Created on (contact);Created by (contact);Work phone (contact);Home phone (contact);Mobile phone (contact);Work email(contact);Private email (contact);Name (company);Address (company);Work phone (company);Lead title;Lead sale;Lead status;Contact tag;Contact note;Contact note;Contact note;Contact note;Contact note;Fax 1 (contact);Fax 2 (contact);Other phone 1 (contact);Other phone 2 (contact);Other email 1 (contact);Other email 2 (contact);ICQ 1 (contact);ICQ 2 (contact);Jabber 1 (contact);Jabber 2 (contact);Google Talk 1 (contact);Google Talk 2 (contact);Skype 1 (contact);Skype 2 (contact);MSN 1 (contact);MSN 2 (contact);Other IM 1 (contact);Other IM 2 (contact)';
+            const rows = [header];
+
+            sessions.forEach(session => {
+                const leadName = (session.contactData?.names?.[0] || '') + ' ' + (session.contactData?.surnames?.[0] || '');
+                const leadEmail = session.contactData?.emails?.[0] || '';
+                const leadPhone = session.contactData?.phones?.[0] || '';
+                const conversationStarted = new Date(session.conversationStarted).toLocaleString();
+                
+                const messages = session.messages.map(msg => `${msg.role}: ${msg.content}`).join('\n');
+
+                const row = [
+                    `"${leadName.trim()}"`,
+                    '""', // Position
+                    '""', // Responsible user (contact)
+                    `"${conversationStarted}"`,
+                    '""', // Created by (contact)
+                    `"${leadPhone}"`,
+                    '""', // Home phone (contact)
+                    '""', // Mobile phone (contact)
+                    `"${leadEmail}"`,
+                    '""', // Private email (contact)
+                    '""', // Name (company)
+                    '""', // Address (company)
+                    '""', // Work phone (company)
+                    '""', // Lead title
+                    '""', // Lead sale
+                    '""', // Lead status
+                    '""', // Contact tag
+                    `"${messages.replace(/"/g, '""')}"` // Contact note
+                ];
+                rows.push(row.join(';'));
+            });
+
+            return rows.join('\n');
+        }
         
         function downloadAllConversations() {
             if (!currentData || !currentData.chatHistory) return;
@@ -803,6 +847,17 @@
             const csvContent = convertToCSV(currentData.chatHistory);
             downloadFile(csvContent, fileName, 'text/csv;charset=utf-8;');
             showNotification('Descarga de CSV completa', 'success');
+        }
+
+        function downloadAllConversationsForKommo() {
+            if (!currentData || !currentData.chatHistory) return;
+            const clientName = currentData.clientName || 'Cliente';
+            const binId = document.getElementById('binId').value;
+            const fileName = `kommo_conversaciones_${clientName}_${binId.substring(0, 8)}_${new Date().toISOString().split('T')[0]}.csv`;
+            
+            const csvContent = convertToCSVforKommo(currentData.chatHistory);
+            downloadFile(csvContent, fileName, 'text/csv;charset=utf-8;');
+            showNotification('Descarga de CSV para Kommo completa', 'success');
         }
 
         function downloadSession(sessionIndex, event) {
@@ -816,6 +871,19 @@
             const csvContent = convertToCSV([session]);
             downloadFile(csvContent, fileName, 'text/csv;charset=utf-8;');
             showNotification(`Sesión ${session.sessionNumber} descargada como CSV`, 'success');
+        }
+
+        function downloadSessionForKommo(sessionIndex, event) {
+            event.stopPropagation();
+            if (!currentData || !currentData.chatHistory[sessionIndex]) return;
+            const session = currentData.chatHistory[sessionIndex];
+            const clientName = currentData.clientName || 'Cliente';
+            const binId = document.getElementById('binId').value;
+            const fileName = `kommo_sesion_${session.sessionNumber}_${clientName}_${binId.substring(0, 8)}_${new Date().toISOString().split('T')[0]}.csv`;
+            
+            const csvContent = convertToCSVforKommo([session]);
+            downloadFile(csvContent, fileName, 'text/csv;charset=utf-8;');
+            showNotification(`Sesión ${session.sessionNumber} descargada como CSV para Kommo`, 'success');
         }
 
         function showNotification(message, type = 'success') {
