@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris ASCII - Clásico</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #00ff41;
+            overflow: hidden;
+        }
+
+        .game-container {
+            display: flex;
+            gap: 25px;
+            padding: 20px;
+            background: rgba(0, 20, 0, 0.8);
+            border: 3px solid #00ff41;
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.5);
+            align-items: flex-start;
+        }
+
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .side-panel.left {
+            width: 220px;
+        }
+
+        .side-panel.right {
+            width: 220px;
+        }
+
+        .game-board-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .board-title {
+            font-size: 32px;
+            margin-bottom: 20px;
+            text-align: center;
+            letter-spacing: 10px;
+            text-shadow: 0 0 15px #00ff41;
+        }
+
+        .game-board {
+            font-size: 22px;
+            line-height: 22px;
+            letter-spacing: 0;
+            white-space: pre;
+            border: 4px solid #00ff41;
+            padding: 20px;
+            background: #000;
+            box-shadow: inset 0 0 25px rgba(0, 255, 65, 0.2);
+        }
+
+        .info-box {
+            background: #000;
+            border: 2px solid #00ff41;
+            padding: 12px;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+        }
+
+        .info-box h2 {
+            font-size: 13px;
+            margin-bottom: 8px;
+            text-align: center;
+            border-bottom: 1px solid #00ff41;
+            padding-bottom: 5px;
+            letter-spacing: 2px;
+        }
+
+        .info-box p {
+            font-size: 24px;
+            margin: 6px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .next-piece {
+            font-size: 18px;
+            line-height: 18px;
+            white-space: pre;
+            text-align: center;
+            margin: 15px 0;
+            min-height: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .leaderboard {
+            background: #000;
+            border: 2px solid #00ff41;
+            padding: 12px;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .leaderboard h2 {
+            font-size: 13px;
+            margin-bottom: 8px;
+            text-align: center;
+            border-bottom: 1px solid #00ff41;
+            padding-bottom: 5px;
+            letter-spacing: 2px;
+        }
+
+        .leaderboard-list {
+            font-size: 11px;
+            line-height: 1.6;
+        }
+
+        .leaderboard-entry {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(0, 255, 65, 0.2);
+        }
+
+        .leaderboard-entry:last-child {
+            border-bottom: none;
+        }
+
+        .leaderboard-rank {
+            color: #00ff41;
+            font-weight: bold;
+            width: 25px;
+        }
+
+        .leaderboard-name {
+            color: #00ff41;
+            flex: 1;
+            text-align: left;
+            padding: 0 5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .leaderboard-score {
+            color: #00ff41;
+            font-weight: bold;
+            text-align: right;
+        }
+
+        .leaderboard-loading {
+            text-align: center;
+            color: #00ff41;
+            padding: 10px;
+            font-size: 11px;
+        }
+
+        .name-input-container {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid #00ff41;
+        }
+
+        .name-input-container input {
+            width: 100%;
+            background: #000;
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            padding: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+
+        .name-input-container button {
+            width: 100%;
+            background: #00ff41;
+            color: #000;
+            border: none;
+            padding: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        .name-input-container button:hover {
+            background: #00cc33;
+        }
+
+        .audio-controls {
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        .audio-button {
+            background: #00ff41;
+            color: #000;
+            border: 2px solid #00ff41;
+            padding: 10px 15px;
+            font-size: 13px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .audio-button:hover {
+            background: #000;
+            color: #00ff41;
+        }
+
+        /* Popups */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .popup {
+            background: #000;
+            border: 4px solid #00ff41;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 0 40px rgba(0, 255, 65, 0.8);
+            max-width: 500px;
+        }
+
+        .popup h1 {
+            color: #00ff41;
+            font-size: 48px;
+            margin-bottom: 30px;
+            text-shadow: 0 0 15px #00ff41;
+            letter-spacing: 8px;
+        }
+
+        .popup h2 {
+            color: #00ff41;
+            font-size: 24px;
+            margin-bottom: 20px;
+            letter-spacing: 4px;
+        }
+
+        .popup .instructions {
+            text-align: left;
+            margin: 20px auto;
+            display: inline-block;
+            font-size: 16px;
+            line-height: 1.8;
+        }
+
+        .popup .instructions p {
+            margin: 8px 0;
+            color: #00ff41;
+        }
+
+        .popup button {
+            background: #00ff41;
+            color: #000;
+            border: none;
+            padding: 15px 40px;
+            font-size: 22px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            margin-top: 25px;
+            transition: all 0.3s;
+            letter-spacing: 3px;
+        }
+
+        .popup button:hover {
+            background: #00cc33;
+            transform: scale(1.05);
+        }
+
+        .game-over-popup {
+            display: none;
+        }
+
+        .game-over-popup h1 {
+            color: #ff0000;
+            text-shadow: 0 0 15px #ff0000;
+        }
+
+        .game-over-popup .popup {
+            border-color: #ff0000;
+            box-shadow: 0 0 40px rgba(255, 0, 0, 0.8);
+        }
+
+        .game-over-popup p {
+            color: #00ff41;
+            font-size: 20px;
+            margin: 10px 0;
+        }
+
+        .pause-popup {
+            display: none;
+        }
+
+        .popup .credits {
+            font-size: 11px;
+            color: #00ff41;
+            opacity: 0.6;
+            margin-top: 20px;
+            line-height: 1.4;
+        }
+
+        /* Colores para las piezas */
+        .cyan { color: #00ffff; }
+        .yellow { color: #ffff00; }
+        .magenta { color: #ff00ff; }
+        .green { color: #00ff00; }
+        .red { color: #ff0000; }
+        .blue { color: #0088ff; }
+        .orange { color: #ff8800; }
+        
+        /* Shadow (fantasma) de la pieza */
+        .shadow { 
+            color: #444444; 
+            opacity: 0.5; 
+        }
+
+        @media (max-width: 1200px) {
+            .game-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .side-panel {
+                flex-direction: row;
+                width: 100%;
+                max-width: 600px;
+            }
+            
+            .info-box {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Popup de inicio -->
+    <div class="popup-overlay" id="startPopup">
+        <div class="popup">
+            <h1>TETRIS</h1>
+            <div class="instructions">
+                <p><strong>[A] [D]</strong> o <strong>[← →]</strong> - Mover izquierda/derecha</p>
+                <p><strong>[S]</strong> o <strong>[↓]</strong> - Soft Drop</p>
+                <p><strong>[W]</strong> o <strong>[↑]</strong> - Rotar</p>
+                <p><strong>[SPACE]</strong> - Hard Drop</p>
+                <p><strong>[P]</strong> - Pausa</p>
+                <p><strong>[R]</strong> - Reiniciar</p>
+                <p><strong>[Q]</strong> - Salir</p>
+            </div>
+            <button id="startBtn">PLAY</button>
+            <div class="credits">
+                Versión del primer Tetris de Alekséi Pázhitnov<br>
+                Creado por Boni y Claude
+            </div>
+        </div>
+    </div>
+
+    <!-- Popup de pausa -->
+    <div class="popup-overlay pause-popup" id="pausePopup">
+        <div class="popup">
+            <h2>PAUSA</h2>
+            <div class="instructions">
+                <p><strong>[A] [D]</strong> o <strong>[← →]</strong> - Mover izquierda/derecha</p>
+                <p><strong>[S]</strong> o <strong>[↓]</strong> - Soft Drop</p>
+                <p><strong>[W]</strong> o <strong>[↑]</strong> - Rotar</p>
+                <p><strong>[SPACE]</strong> - Hard Drop</p>
+                <p><strong>[P]</strong> - Reanudar</p>
+                <p><strong>[Q]</strong> - Salir</p>
+            </div>
+            <button id="resumeBtn">CONTINUAR</button>
+        </div>
+    </div>
+
+    <!-- Popup de game over -->
+    <div class="popup-overlay game-over-popup" id="gameOverPopup">
+        <div class="popup">
+            <h1>GAME OVER</h1>
+            <p>SCORE: <span id="finalScore">0</span></p>
+            <p>LEVEL: <span id="finalLevel">1</span></p>
+            <p>LINES: <span id="finalLines">0</span></p>
+            <div class="name-input-container">
+                <label style="color: #00ff41; font-size: 12px;">Ingresá tu nombre para el ranking:</label>
+                <input type="text" id="playerNameInput" maxlength="15" placeholder="TU NOMBRE">
+                <button id="submitScoreBtn">ENVIAR PUNTAJE</button>
+            </div>
+            <button id="playAgainBtn">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <div class="game-container" id="gameContainer" style="display: none;">
+        <div class="side-panel left">
+            <div class="info-box">
+                <h2>NEXT PIECE</h2>
+                <div class="next-piece" id="nextPiece"></div>
+            </div>
+            <div class="leaderboard">
+                <h2>TOP 10</h2>
+                <div class="leaderboard-list" id="leaderboardList">
+                    <div class="leaderboard-loading">Cargando...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-board-container">
+            <div class="board-title">===== TETRIS GAME =====</div>
+            <div class="game-board" id="gameBoard"></div>
+        </div>
+
+        <div class="side-panel right">
+            <div class="info-box">
+                <h2>SCORE</h2>
+                <p id="score">0</p>
+            </div>
+            <div class="info-box">
+                <h2>HI-SCORE</h2>
+                <p id="highscore">0</p>
+            </div>
+            <div class="info-box">
+                <h2>LEVEL</h2>
+                <p id="level">1</p>
+            </div>
+            <div class="info-box">
+                <h2>LINES</h2>
+                <p id="lines">0</p>
+            </div>
+            <div class="audio-controls">
+                <button class="audio-button" id="musicToggle">🎵 8BIT THEME</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio elements para la música -->
+    <!-- 
+    Para usar archivos de música locales:
+    1. Descarga tus archivos MP3 (por ejemplo, Korobeiniki original)
+    2. Ponelos en la misma carpeta que este HTML
+    3. Cambia el src a algo como: src="korobeiniki.mp3"
+    -->
+    <audio id="tetrisMusic1" loop>
+        <!-- Tetris Theme - 8bit style -->
+        <source src="https://archive.org/download/TetrisThemeMusic/Tetris.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="tetrisMusic2" loop>
+        <!-- Alternative track with more power -->
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="tetrisMusic3" loop>
+        <!-- Korobeiniki Original Version -->
+        <source src="https://www.chosic.com/wp-content/uploads/2021/10/korobeiniki.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Efectos de sonido (SFX) -->
+    <audio id="sfxMove" preload="auto"></audio>
+    <audio id="sfxRotate" preload="auto"></audio>
+    <audio id="sfxDrop" preload="auto"></audio>
+    <audio id="sfxLine" preload="auto"></audio>
+    <audio id="sfxLevelUp" preload="auto"></audio>
+    <audio id="sfxGameOver" preload="auto"></audio>
+
+    <script>
+        // URL del Google Apps Script (vas a tener que reemplazar esto con tu URL)
+        const LEADERBOARD_URL = 'https://script.google.com/macros/s/AKfycbwwtbfRkb0Y0xd8Fm7LWEfzlxEZu84fBWWEIBuNujdsc3RJg7tE-vR7F3FZKdLZtXhC/exec';
+        
+        const COLS = 10;
+        const ROWS = 20;
+
+        const SHAPES = {
+            I: { shape: [[1,1,1,1]], color: 'cyan', char: '[]' },
+            O: { shape: [[1,1],[1,1]], color: 'yellow', char: '[]' },
+            T: { shape: [[0,1,0],[1,1,1]], color: 'magenta', char: '[]' },
+            S: { shape: [[0,1,1],[1,1,0]], color: 'green', char: '[]' },
+            Z: { shape: [[1,1,0],[0,1,1]], color: 'red', char: '[]' },
+            J: { shape: [[1,0,0],[1,1,1]], color: 'blue', char: '[]' },
+            L: { shape: [[0,0,1],[1,1,1]], color: 'orange', char: '[]' }
+        };
+
+        let board = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+        let currentPiece = null;
+        let nextPiece = null;
+        let score = 0;
+        let lines = 0;
+        let level = 1;
+        let highScore = 0;
+        let gameLoop = null;
+        let dropCounter = 0;
+        let dropInterval = 1000;
+        let lastTime = 0;
+        let isPaused = false;
+        let musicState = 0; // 0 = 8bit Tetris, 1 = Track 2, 2 = Mute
+        let gameStarted = false;
+
+        const music1 = document.getElementById('tetrisMusic1');
+        const music2 = document.getElementById('tetrisMusic2');
+        const music3 = document.getElementById('tetrisMusic3');
+        const startBtn = document.getElementById('startBtn');
+        const resumeBtn = document.getElementById('resumeBtn');
+        const playAgainBtn = document.getElementById('playAgainBtn');
+        const musicToggle = document.getElementById('musicToggle');
+
+        // Web Audio API para SFX sintéticos
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        // Función para crear SFX sintéticos
+        function playSFX(type) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Configurar el sonido según el tipo
+            switch(type) {
+                case 'move':
+                    oscillator.frequency.value = 200;
+                    oscillator.type = 'square';
+                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.05);
+                    break;
+                    
+                case 'rotate':
+                    oscillator.frequency.value = 400;
+                    oscillator.type = 'square';
+                    gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.08);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.08);
+                    break;
+                    
+                case 'drop':
+                    oscillator.frequency.value = 100;
+                    oscillator.type = 'sine';
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.15);
+                    break;
+                    
+                case 'line':
+                    // Sonido de línea completada - subida rápida
+                    oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + 0.1);
+                    oscillator.type = 'square';
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.15);
+                    break;
+                    
+                case 'levelup':
+                    // Sonido de level up - arpeggio ascendente
+                    const frequencies = [523, 659, 784, 1047]; // Do, Mi, Sol, Do alto
+                    frequencies.forEach((freq, index) => {
+                        const osc = audioContext.createOscillator();
+                        const gain = audioContext.createGain();
+                        osc.connect(gain);
+                        gain.connect(audioContext.destination);
+                        osc.frequency.value = freq;
+                        osc.type = 'square';
+                        const startTime = audioContext.currentTime + (index * 0.08);
+                        gain.gain.setValueAtTime(0.15, startTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.15);
+                        osc.start(startTime);
+                        osc.stop(startTime + 0.15);
+                    });
+                    return; // Ya hicimos todo en el forEach
+                    
+                case 'gameover':
+                    // Sonido de game over - bajada triste
+                    oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.5);
+                    oscillator.type = 'sine';
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.5);
+                    break;
+            }
+        }
+
+        // Cargar high score del localStorage
+        function loadHighScore() {
+            const saved = localStorage.getItem('tetrisHighScore');
+            if (saved) {
+                highScore = parseInt(saved, 10);
+                console.log('High score cargado:', highScore);
+            } else {
+                highScore = 0;
+                console.log('No hay high score guardado, iniciando en 0');
+            }
+            // Actualizar el display solo si el elemento existe
+            const highscoreElement = document.getElementById('highscore');
+            if (highscoreElement) {
+                highscoreElement.textContent = highScore;
+            }
+        }
+
+        // Guardar high score en localStorage
+        function saveHighScore() {
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('tetrisHighScore', highScore.toString());
+                document.getElementById('highscore').textContent = highScore;
+            }
+        }
+
+        // Funciones del Leaderboard
+        async function loadLeaderboard() {
+            try {
+                const response = await fetch(LEADERBOARD_URL + '?action=get');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayLeaderboard(data.leaderboard);
+                } else {
+                    document.getElementById('leaderboardList').innerHTML = 
+                        '<div class="leaderboard-loading">Error al cargar</div>';
+                }
+            } catch (error) {
+                console.error('Error loading leaderboard:', error);
+                document.getElementById('leaderboardList').innerHTML = 
+                    '<div class="leaderboard-loading">Sin conexión</div>';
+            }
+        }
+
+        function displayLeaderboard(leaderboard) {
+            const listElement = document.getElementById('leaderboardList');
+            
+            if (!leaderboard || leaderboard.length === 0) {
+                listElement.innerHTML = '<div class="leaderboard-loading">Sin puntajes aún</div>';
+                return;
+            }
+
+            let html = '';
+            leaderboard.slice(0, 10).forEach((entry, index) => {
+                html += `
+                    <div class="leaderboard-entry">
+                        <span class="leaderboard-rank">#${index + 1}</span>
+                        <span class="leaderboard-name">${entry.name}</span>
+                        <span class="leaderboard-score">${entry.score}</span>
+                    </div>
+                `;
+            });
+            
+            listElement.innerHTML = html;
+        }
+
+        async function submitScore() {
+            const nameInput = document.getElementById('playerNameInput');
+            const submitBtn = document.getElementById('submitScoreBtn');
+            const playerName = nameInput.value.trim();
+
+            if (!playerName) {
+                alert('¡Ingresá tu nombre para guardar el puntaje!');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'ENVIANDO...';
+
+            try {
+                console.log('Enviando puntaje a:', LEADERBOARD_URL);
+                console.log('Datos:', { name: playerName, score, level, lines });
+                
+                const response = await fetch(LEADERBOARD_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Importante para Google Apps Script
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'submit',
+                        name: playerName,
+                        score: score,
+                        level: level,
+                        lines: lines
+                    })
+                });
+
+                console.log('Response status:', response.status);
+                
+                // Con no-cors, no podemos leer la respuesta, así que asumimos éxito
+                if (response.type === 'opaque' || response.ok) {
+                    submitBtn.textContent = '¡ENVIADO! ✓';
+                    nameInput.disabled = true;
+                    
+                    // Esperar un poco, recargar leaderboard y reiniciar el juego
+                    setTimeout(() => {
+                        loadLeaderboard();
+                        restartGame(); // Reiniciar automáticamente en lugar de solo cerrar
+                    }, 1500);
+                } else {
+                    throw new Error('Error en la respuesta del servidor');
+                }
+            } catch (error) {
+                console.error('Error completo:', error);
+                submitBtn.textContent = 'ERROR';
+                submitBtn.disabled = false;
+                alert('Error: ' + error.message + '\n\nRevisá la consola (F12) para más detalles.');
+            }
+        }
+
+        startBtn.addEventListener('click', startGame);
+        resumeBtn.addEventListener('click', togglePause);
+        playAgainBtn.addEventListener('click', restartGame);
+        musicToggle.addEventListener('click', cycleMusicState);
+        document.getElementById('submitScoreBtn').addEventListener('click', submitScore);
+
+        // Cargar high score y leaderboard al inicio
+        loadHighScore();
+        loadLeaderboard();
+
+        function cycleMusicState() {
+            // Parar toda la música
+            music1.pause();
+            music2.pause();
+            music3.pause();
+            
+            // Ciclar al siguiente estado (3 estados: 2 canciones + mute)
+            musicState = (musicState + 1) % 3;
+            
+            // Aplicar el nuevo estado
+            switch(musicState) {
+                case 0: // 8bit Tetris
+                    music1.currentTime = 0;
+                    music1.play().catch(e => console.log('Error:', e));
+                    musicToggle.textContent = '🎵 8BIT THEME';
+                    break;
+                case 1: // Electro Chill
+                    music2.currentTime = 0;
+                    music2.play().catch(e => console.log('Error:', e));
+                    musicToggle.textContent = '🎸 ELECTRO CHILL';
+                    break;
+                case 2: // Mute
+                    musicToggle.textContent = '🔇 MUTE';
+                    break;
+            }
+        }
+
+        function startGame() {
+            document.getElementById('startPopup').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'flex';
+            gameStarted = true;
+            
+            // Reanudar AudioContext para que los SFX funcionen
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            
+            currentPiece = getRandomPiece();
+            nextPiece = getRandomPiece();
+            renderNextPiece();
+            updateScore();
+            renderBoard();
+            
+            // Iniciar con la música según el estado actual
+            if (musicState !== 2) { // Si no está en mute
+                if (musicState === 0) {
+                    music1.play().catch(e => console.log('Error:', e));
+                } else if (musicState === 1) {
+                    music2.play().catch(e => console.log('Error:', e));
+                }
+            }
+            
+            lastTime = 0;
+            gameLoop = requestAnimationFrame(update);
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            const pausePopup = document.getElementById('pausePopup');
+            
+            if (isPaused) {
+                pausePopup.style.display = 'flex';
+                music1.pause();
+                music2.pause();
+                music3.pause();
+            } else {
+                pausePopup.style.display = 'none';
+                if (musicState === 0) {
+                    music1.play();
+                } else if (musicState === 1) {
+                    music2.play();
+                }
+            }
+        }
+
+        function getRandomPiece() {
+            const shapes = Object.keys(SHAPES);
+            const shapeKey = shapes[Math.floor(Math.random() * shapes.length)];
+            const shapeData = SHAPES[shapeKey];
+            return {
+                shape: JSON.parse(JSON.stringify(shapeData.shape)),
+                color: shapeData.color,
+                char: shapeData.char,
+                x: Math.floor(COLS / 2) - Math.floor(shapeData.shape[0].length / 2),
+                y: 0,
+                type: shapeKey
+            };
+        }
+
+        function renderBoard() {
+            let boardCopy = board.map(row => [...row]);
+            
+            // Calcular posición de la shadow (fantasma)
+            let shadowY = currentPiece.y;
+            while (!collision({ ...currentPiece, y: shadowY + 1 })) {
+                shadowY++;
+            }
+            
+            // Dibujar la shadow si no está en la misma posición que la pieza actual
+            if (shadowY !== currentPiece.y && currentPiece) {
+                currentPiece.shape.forEach((row, y) => {
+                    row.forEach((value, x) => {
+                        if (value) {
+                            const boardY = shadowY + y;
+                            const boardX = currentPiece.x + x;
+                            if (boardY >= 0 && boardY < ROWS && boardX >= 0 && boardX < COLS && !boardCopy[boardY][boardX]) {
+                                boardCopy[boardY][boardX] = {
+                                    color: 'shadow',
+                                    char: currentPiece.char
+                                };
+                            }
+                        }
+                    });
+                });
+            }
+            
+            if (currentPiece) {
+                currentPiece.shape.forEach((row, y) => {
+                    row.forEach((value, x) => {
+                        if (value) {
+                            const boardY = currentPiece.y + y;
+                            const boardX = currentPiece.x + x;
+                            if (boardY >= 0 && boardY < ROWS && boardX >= 0 && boardX < COLS) {
+                                boardCopy[boardY][boardX] = {
+                                    color: currentPiece.color,
+                                    char: currentPiece.char
+                                };
+                            }
+                        }
+                    });
+                });
+            }
+
+            let output = '';
+            output += '||' + '=='.repeat(COLS) + '||\n';
+            
+            boardCopy.forEach(row => {
+                output += '||';
+                row.forEach(cell => {
+                    if (cell) {
+                        output += `<span class="${cell.color}">${cell.char}</span>`;
+                    } else {
+                        output += '  ';
+                    }
+                });
+                output += '||\n';
+            });
+            
+            output += '||' + '=='.repeat(COLS) + '||';
+            
+            document.getElementById('gameBoard').innerHTML = output;
+        }
+
+        function renderNextPiece() {
+            if (!nextPiece) return;
+            
+            let output = '';
+            const maxWidth = Math.max(...nextPiece.shape.map(row => row.length));
+            const maxHeight = nextPiece.shape.length;
+            
+            const padTop = Math.floor((4 - maxHeight) / 2);
+            const padLeft = Math.floor((6 - maxWidth * 2) / 2);
+            
+            for (let i = 0; i < padTop; i++) {
+                output += '\n';
+            }
+            
+            nextPiece.shape.forEach(row => {
+                output += ' '.repeat(padLeft);
+                row.forEach(value => {
+                    if (value) {
+                        output += `<span class="${nextPiece.color}">${nextPiece.char}</span>`;
+                    } else {
+                        output += '  ';
+                    }
+                });
+                output += '\n';
+            });
+            
+            document.getElementById('nextPiece').innerHTML = output;
+        }
+
+        function collision(piece, offsetX = 0, offsetY = 0) {
+            return piece.shape.some((row, y) => {
+                return row.some((value, x) => {
+                    if (!value) return false;
+                    const newX = piece.x + x + offsetX;
+                    const newY = piece.y + y + offsetY;
+                    return (
+                        newX < 0 ||
+                        newX >= COLS ||
+                        newY >= ROWS ||
+                        (newY >= 0 && board[newY][newX])
+                    );
+                });
+            });
+        }
+
+        function merge() {
+            currentPiece.shape.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value) {
+                        const boardY = currentPiece.y + y;
+                        const boardX = currentPiece.x + x;
+                        if (boardY >= 0 && boardY < ROWS) {
+                            board[boardY][boardX] = {
+                                color: currentPiece.color,
+                                char: currentPiece.char
+                            };
+                        }
+                    }
+                });
+            });
+        }
+
+        function rotate() {
+            const rotated = currentPiece.shape[0].map((_, i) =>
+                currentPiece.shape.map(row => row[i]).reverse()
+            );
+            const previousShape = currentPiece.shape;
+            currentPiece.shape = rotated;
+            
+            if (collision(currentPiece)) {
+                currentPiece.shape = previousShape;
+            } else {
+                // Reproducir SFX solo si la rotación fue exitosa
+                playSFX('rotate');
+            }
+        }
+
+        function clearLines() {
+            let linesCleared = 0;
+            const previousLevel = level;
+            
+            for (let y = ROWS - 1; y >= 0; y--) {
+                if (board[y].every(cell => cell !== null)) {
+                    board.splice(y, 1);
+                    board.unshift(Array(COLS).fill(null));
+                    linesCleared++;
+                    y++;
+                }
+            }
+            
+            if (linesCleared > 0) {
+                lines += linesCleared;
+                score += [0, 100, 300, 500, 800][linesCleared] * level;
+                level = Math.floor(lines / 10) + 1;
+                dropInterval = Math.max(100, 1000 - (level - 1) * 50);
+                updateScore();
+                
+                // Reproducir SFX de línea completada
+                playSFX('line');
+                
+                // Si subió de nivel, reproducir SFX de level up
+                if (level > previousLevel) {
+                    setTimeout(() => playSFX('levelup'), 200);
+                }
+            }
+        }
+
+        function updateScore() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('lines').textContent = lines;
+            document.getElementById('level').textContent = level;
+            
+            // Actualizar high score en tiempo real si se supera
+            if (score > highScore) {
+                highScore = score;
+                document.getElementById('highscore').textContent = highScore;
+            }
+        }
+
+        function drop() {
+            if (collision(currentPiece, 0, 1)) {
+                merge();
+                playSFX('drop'); // Reproducir SFX cuando la pieza cae
+                clearLines();
+                currentPiece = nextPiece;
+                nextPiece = getRandomPiece();
+                renderNextPiece();
+                
+                if (collision(currentPiece)) {
+                    gameOver();
+                }
+            } else {
+                currentPiece.y++;
+            }
+        }
+
+        function hardDrop() {
+            while (!collision(currentPiece, 0, 1)) {
+                currentPiece.y++;
+                score += 2;
+            }
+            updateScore();
+            drop();
+        }
+
+        function gameOver() {
+            if (gameLoop) {
+                cancelAnimationFrame(gameLoop);
+                gameLoop = null;
+            }
+            music1.pause();
+            music2.pause();
+            music3.pause();
+            
+            // Reproducir SFX de game over
+            playSFX('gameover');
+            
+            // Verificar si es high score antes de guardar (>=  para incluir empates)
+            const isNewHighScore = score >= highScore;
+            
+            console.log('Game Over - Score:', score, 'High Score:', highScore, 'Es nuevo high score?', isNewHighScore);
+            
+            // Guardar high score
+            saveHighScore();
+            
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('finalLevel').textContent = level;
+            document.getElementById('finalLines').textContent = lines;
+            
+            // Mostrar u ocultar el input según si es high score
+            const nameInputContainer = document.querySelector('.name-input-container');
+            if (isNewHighScore && score > 0) {
+                nameInputContainer.style.display = 'block';
+                console.log('Mostrando input de nombre');
+            } else {
+                nameInputContainer.style.display = 'none';
+                console.log('Ocultando input de nombre');
+            }
+            
+            document.getElementById('gameOverPopup').style.display = 'flex';
+        }
+
+        function restartGame() {
+            board = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+            score = 0;
+            lines = 0;
+            level = 1;
+            dropInterval = 1000;
+            dropCounter = 0;
+            isPaused = false;
+            
+            currentPiece = getRandomPiece();
+            nextPiece = getRandomPiece();
+            
+            updateScore();
+            renderNextPiece();
+            renderBoard();
+            
+            // Resetear el input de nombre
+            const nameInput = document.getElementById('playerNameInput');
+            const submitBtn = document.getElementById('submitScoreBtn');
+            nameInput.value = '';
+            nameInput.disabled = false;
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'ENVIAR PUNTAJE';
+            
+            document.getElementById('gameOverPopup').style.display = 'none';
+            
+            // Reiniciar la música según el estado actual
+            if (musicState === 0) {
+                music1.currentTime = 0;
+                music1.play().catch(e => console.log('Error:', e));
+            } else if (musicState === 1) {
+                music2.currentTime = 0;
+                music2.play().catch(e => console.log('Error:', e));
+            }
+            
+            lastTime = 0;
+            if (gameLoop) {
+                cancelAnimationFrame(gameLoop);
+            }
+            gameLoop = requestAnimationFrame(update);
+        }
+
+        function update(time = 0) {
+            if (isPaused) {
+                gameLoop = requestAnimationFrame(update);
+                return;
+            }
+
+            const deltaTime = time - lastTime;
+            lastTime = time;
+            dropCounter += deltaTime;
+
+            if (dropCounter > dropInterval) {
+                drop();
+                dropCounter = 0;
+            }
+
+            renderBoard();
+            gameLoop = requestAnimationFrame(update);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (!gameStarted) return;
+            
+            if (e.key.toLowerCase() === 'p') {
+                e.preventDefault();
+                togglePause();
+                return;
+            }
+            
+            // Tecla R para reiniciar
+            if (e.key.toLowerCase() === 'r') {
+                e.preventDefault();
+                if (confirm('¿Querés reiniciar la partida?')) {
+                    restartGame();
+                }
+                return;
+            }
+            
+            if (isPaused) return;
+
+            switch(e.key.toLowerCase()) {
+                case 'a':
+                case 'arrowleft':
+                    e.preventDefault();
+                    if (!collision(currentPiece, -1, 0)) {
+                        currentPiece.x--;
+                        playSFX('move');
+                    }
+                    break;
+                case 'd':
+                case 'arrowright':
+                    e.preventDefault();
+                    if (!collision(currentPiece, 1, 0)) {
+                        currentPiece.x++;
+                        playSFX('move');
+                    }
+                    break;
+                case 's':
+                case 'arrowdown':
+                    e.preventDefault();
+                    if (!collision(currentPiece, 0, 1)) {
+                        currentPiece.y++;
+                        score += 1;
+                        updateScore();
+                        playSFX('move');
+                    } else {
+                        // Si hay colisión, hacer el drop para mergear la pieza
+                        drop();
+                    }
+                    break;
+                case 'w':
+                case 'arrowup':
+                    e.preventDefault();
+                    rotate();
+                    break;
+                case ' ':
+                    e.preventDefault();
+                    hardDrop();
+                    break;
+                case 'q':
+                    e.preventDefault();
+                    if (confirm('¿Seguro que querés salir?')) {
+                        gameOver();
+                    }
+                    break;
+            }
+        });
+    </script>
+</body>
+</html>
